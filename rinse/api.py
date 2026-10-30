@@ -2,16 +2,19 @@
 from __future__ import annotations
 
 import io
+from pathlib import Path
 from typing import Optional
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 from . import __version__, store
 
 RESERVED = {"limit", "offset", "version"}
+STATIC = Path(__file__).resolve().parent / "static"
 
 app = FastAPI(
     title="Rinse",
@@ -24,6 +27,7 @@ app = FastAPI(
     ),
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
+app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
 def _con():
@@ -33,8 +37,18 @@ def _con():
 @app.get("/", tags=["meta"])
 def home():
     con = _con()
-    return {"name": "Rinse", "version": __version__, "docs": "/docs",
+    return {"name": "Rinse", "version": __version__, "docs": "/docs", "ui": "/ui",
             "datasets": [d["name"] for d in store.list_datasets(con)]}
+
+
+@app.get("/ui", include_in_schema=False)
+def ui():
+    return FileResponse(STATIC / "index.html")
+
+
+@app.get("/ui/", include_in_schema=False)
+def ui_slash():
+    return RedirectResponse("/ui")
 
 
 @app.get("/datasets", tags=["datasets"], summary="List all datasets")

@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rinse · Explorer</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6a64; --line: #e3e1d9;
+    --accent: #1f6f5c; --accent-soft: #e2f0eb; --warn: #9a5b13; --warn-soft: #fbefdc;
+    --chip: #f0eee7; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141513; --panel: #1c1d1a; --ink: #ecebe6; --muted: #9b9a92; --line: #2e2f2b;
+      --accent: #5cc4a5; --accent-soft: #173229; --warn: #e3a35a; --warn-soft: #33260f; --chip: #262723;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans); }
+  a { color: var(--accent); }
+  header.top {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 14px 24px; border-bottom: 1px solid var(--line); background: var(--panel);
+  }
+  .brand { display: flex; align-items: baseline; gap: 12px; }
+  .brand b { font-size: 20px; letter-spacing: -0.02em; }
+  .brand b span { color: var(--accent); }
+  .brand small { color: var(--muted); }
+  .top nav a { margin-left: 16px; text-decoration: none; font-weight: 500; }
+  .layout { display: grid; grid-template-columns: 250px 1fr; min-height: calc(100vh - 57px); }
+  aside { border-right: 1px solid var(--line); padding: 16px 12px; background: var(--panel); }
+  aside h4 { margin: 4px 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .ds { display: block; width: 100%; text-align: left; border: 0; background: none; color: inherit;
+        padding: 9px 10px; border-radius: 8px; cursor: pointer; font: inherit; }
+  .ds:hover { background: var(--chip); }
+  .ds.active { background: var(--accent-soft); }
+  .ds b { display: block; font-family: var(--mono); font-size: 13px; }
+  .ds span { color: var(--muted); font-size: 12px; }
+  main { padding: 24px; min-width: 0; }
+  .head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .head h1 { margin: 0; font: 600 24px/1.2 var(--mono); }
+  .source { color: var(--muted); font-size: 12px; word-break: break-all; margin-top: 4px; }
+  .actions { display: flex; gap: 8px; align-items: center; }
+  select, input, button.btn, a.btn {
+    font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 7px 10px; text-decoration: none;
+  }
+  button.btn, a.btn { cursor: pointer; font-weight: 500; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .report { margin: 18px 0; padding: 14px 16px; border-radius: 10px; background: var(--accent-soft); }
+  .report h3 { margin: 0 0 8px; font-size: 13px; }
+  .report ul { margin: 0; padding-left: 18px; }
+  .report li { margin: 2px 0; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-top: 8px; }
+  .tab { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 500; padding: 10px 14px;
+         cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+  .pane { display: none; padding-top: 16px; }
+  .pane.active { display: block; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .filters input { min-width: 180px; }
+  .apiurl { display: flex; gap: 8px; align-items: center; margin: 12px 0; padding: 8px 10px;
+            background: var(--chip); border-radius: 8px; font: 12px var(--mono); }
+  .apiurl code { flex: 1; overflow-x: auto; white-space: nowrap; }
+  .apiurl button { border: 0; background: none; color: var(--accent); cursor: pointer; font: inherit; font-weight: 600; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--panel); font-weight: 600; }
+  th .kind { display: block; font-weight: 500; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  td.num { text-align: right; font-family: var(--mono); }
+  td.null { color: var(--muted); font-style: italic; }
+  tr:last-child td { border-bottom: 0; }
+  .pager { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; color: var(--muted); }
+  .version { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; background: var(--panel); }
+  .version b { font-family: var(--mono); }
+  .version .when { color: var(--muted); font-size: 12px; margin-left: 8px; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--chip); font-size: 12px; margin-right: 6px; }
+  .tag.add { background: var(--accent-soft); color: var(--accent); }
+  .tag.del { background: var(--warn-soft); color: var(--warn); }
+  .empty { max-width: 560px; margin: 60px auto; text-align: center; color: var(--muted); }
+  .empty code { display: inline-block; margin-top: 8px; padding: 6px 10px; background: var(--chip); border-radius: 6px; color: var(--ink); }
+  .error { color: var(--warn); margin-top: 8px; }
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; }
+    aside { border-right: 0; border-bottom: 1px solid var(--line); }
+    main { padding: 16px; }
+    header.top { padding: 12px 16px; }
+    .brand small { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>rin<span>se</span></b><small>clean, versioned APIs for Indian public data</small></div>
+  <nav><a href="/docs" target="_blank">API docs</a><a href="https://github.com/ashmita-kamath/rinse" target="_blank">GitHub</a></nav>
+</header>
+<div class="layout">
+  <aside>
+    <h4>Datasets</h4>
+    <div id="list"></div>
+  </aside>
+  <main id="main">
+    <div class="empty">Loading…</div>
+  </main>
+</div>
+
+<template id="view">
+  <div class="head">
+    <div>
+      <h1 id="name"></h1>
+      <div class="source" id="source"></div>
+    </div>
+    <div class="actions">
+      <select id="version" aria-label="Version"></select>
+      <a class="btn primary" id="download">Download CSV</a>
+    </div>
+  </div>
+  <div class="report">
+    <h3>What Rinse cleaned</h3>
+    <ul id="notes"></ul>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="data">Data</button>
+    <button class="tab" data-tab="changes">Changelog</button>
+    <button class="tab" data-tab="columns">Columns</button>
+  </div>
+  <section class="pane active" id="pane-data">
+    <form class="filters" id="filter">
+      <select id="fcol" aria-label="Column"></select>
+      <select id="fop" aria-label="Operator">
+        <option value="">equals</option>
+        <option value="contains">contains</option>
+        <option value="gte">≥</option>
+        <option value="lte">≤</option>
+        <option value="gt">&gt;</option>
+        <option value="lt">&lt;</option>
+        <option value="ne">is not</option>
+      </select>
+      <input id="fval" placeholder="value, e.g. Mysuru" aria-label="Value">
+      <button class="btn primary" type="submit">Filter</button>
+      <button class="btn" type="button" id="clear">Clear</button>
+    </form>
+    <div class="error" id="err"></div>
+    <div class="apiurl"><code id="apiurl"></code><button type="button" id="copy">Copy</button></div>
+    <div class="tablewrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+    <div class="pager">
+      <span id="count"></span>
+      <span><button class="btn" id="prev">← Prev</button> <button class="btn" id="next">Next →</button></span>
+    </div>
+  </section>
+  <section class="pane" id="pane-changes"><div id="changes"></div></section>
+  <section class="pane" id="pane-columns">
+    <div class="tablewrap"><table>
+      <thead><tr><th>Column</th><th>Type</th><th>Original header</th><th>Description</th></tr></thead>
+      <tbody id="cols"></tbody>
+    </table></div>
+  </section>
+</template>
+
+<script type="module">
+import { Rinse } from "/static/rinse.js";
+
+const api = new Rinse(location.origin);
+const PAGE = 50;
+const state = { name: null, meta: null, version: null, filter: null, offset: 0 };
+const $ = (id) => document.getElementById(id);
+
+function el(tag, attrs = {}, text) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+async function loadList() {
+  const list = $("list");
+  const datasets = await api.datasets();
+  list.replaceChildren();
+  if (!datasets.length) {
+    const main = $("main");
+    main.replaceChildren(el("div", { class: "empty" }));
+    main.firstChild.append("No datasets yet. Add one from the terminal:", el("br"), el("code", {}, "rinse add <url-or-file>"));
+    return;
+  }
+  for (const d of datasets) {
+    const btn = el("button", { class: "ds", "data-name": d.name });
+    btn.append(el("b", {}, d.name), el("span", {}, `v${d.latest_version} · ${d.row_count} rows`));
+    btn.onclick = () => openDataset(d.name);
+    list.append(btn);
+  }
+  const wanted = new URLSearchParams(location.search).get("dataset");
+  openDataset(datasets.some((d) => d.name === wanted) ? wanted : datasets[0].name);
+}
+
+async function openDataset(name) {
+  document.querySelectorAll(".ds").forEach((b) => b.classList.toggle("active", b.dataset.name === name));
+  history.replaceState(null, "", `?dataset=${encodeURIComponent(name)}`);
+  const [meta, versions] = await Promise.all([api.dataset(name), api.versions(name)]);
+  Object.assign(state, { name, meta, version: meta.latest_version, filter: null, offset: 0 });
+
+  $("main").replaceChildren($("view").content.cloneNode(true));
+  $("name").textContent = name;
+  $("source").textContent = `source: ${meta.source}`;
+
+  const vsel = $("version");
+  for (const v of versions) vsel.append(el("option", { value: v.version }, `v${v.version}${v.version === meta.latest_version ? " (latest)" : ""}`));
+  vsel.onchange = () => { state.version = Number(vsel.value); state.offset = 0; loadRows(); };
+
+  const notes = meta.cleaning.notes.length ? meta.cleaning.notes : ["nothing needed cleaning"];
+  for (const n of notes) $("notes").append(el("li", {}, n));
+
+  const fcol = $("fcol");
+  for (const c of meta.columns) fcol.append(el("option", { value: c.name }, c.name));
+  const placeCol = meta.columns.find((c) => c.kind === "district" || c.kind === "state");
+  if (placeCol) fcol.value = placeCol.name;
+  $("filter").onsubmit = (e) => {
+    e.preventDefault();
+    const key = $("fop").value ? `${fcol.value}__${$("fop").value}` : fcol.value;
+    state.filter = $("fval").value.trim() ? { [key]: $("fval").value.trim() } : null;
+    state.offset = 0;
+    loadRows();
+  };
+  $("clear").onclick = () => { $("fval").value = ""; state.filter = null; state.offset = 0; loadRows(); };
+  $("prev").onclick = () => { state.offset = Math.max(0, state.offset - PAGE); loadRows(); };
+  $("next").onclick = () => { state.offset += PAGE; loadRows(); };
+  $("copy").onclick = () => navigator.clipboard.writeText($("apiurl").textContent);
+
+  document.querySelectorAll(".tab").forEach((t) => t.onclick = () => {
+    document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x === t));
+    document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("active", p.id === `pane-${t.dataset.tab}`));
+  });
+
+  renderChanges(versions);
+  renderColumns(meta);
+  loadRows();
+}
+
+async function loadRows() {
+  const { name, meta, version, filter, offset } = state;
+  const params = { limit: PAGE, offset, version: version === meta.latest_version ? undefined : version, ...(filter || {}) };
+  $("apiurl").textContent = api.url(`/datasets/${name}/rows`, params);
+  $("download").href = api.exportUrl(name, params.version);
+  $("err").textContent = "";
+  let page;
+  try {
+    page = await api.rows(name, params);
+  } catch (e) {
+    $("err").textContent = e.detail || e.message;
+    return;
+  }
+  const kinds = Object.fromEntries(meta.columns.map((c) => [c.name, c]));
+  const cols = page.rows.length ? Object.keys(page.rows[0]) : meta.columns.map((c) => c.name);
+
+  const tr = el("tr");
+  for (const c of cols) {
+    const th = el("th", { title: kinds[c]?.description || "" }, c);
+    th.append(el("span", { class: "kind" }, kinds[c]?.kind || ""));
+    tr.append(th);
+  }
+  $("thead").replaceChildren(tr);
+
+  const body = $("tbody");
+  body.replaceChildren();
+  for (const row of page.rows) {
+    const r = el("tr");
+    for (const c of cols) {
+      const v = row[c];
+      if (v === null || v === undefined) r.append(el("td", { class: "null" }, "null"));
+      else if (typeof v === "number") r.append(el("td", { class: "num" }, v.toLocaleString("en-IN")));
+      else r.append(el("td", {}, String(v)));
+    }
+    body.append(r);
+  }
+  if (!page.rows.length) {
+    const r = el("tr");
+    r.append(el("td", { colspan: cols.length, class: "null" }, "no matching rows"));
+    body.append(r);
+  }
+  const end = Math.min(offset + PAGE, page.total);
+  $("count").textContent = page.total ? `${offset + 1}–${end} of ${page.total} rows · v${page.version}` : `0 rows · v${page.version}`;
+  $("prev").disabled = offset === 0;
+  $("next").disabled = end >= page.total;
+}
+
+const rowsWord = (n) => `${n} ${n === 1 ? "row" : "rows"}`;
+
+function renderChanges(versions) {
+  const box = $("changes");
+  for (const v of versions) {
+    const card = el("div", { class: "version" });
+    const title = el("div");
+    title.append(el("b", {}, `v${v.version}`), el("span", { class: "when" }, new Date(v.created_at).toLocaleString("en-IN")));
+    const tags = el("div", { style: "margin-top:6px" });
+    const ch = v.changes;
+    if (ch.from_version) {
+      tags.append(el("span", { class: "tag add" }, `+${rowsWord(ch.rows_added)}`), el("span", { class: "tag del" }, `−${rowsWord(ch.rows_removed)}`));
+      for (const c of ch.columns_added || []) tags.append(el("span", { class: "tag add" }, `+ column ${c}`));
+      for (const c of ch.columns_removed || []) tags.append(el("span", { class: "tag del" }, `− column ${c}`));
+    } else {
+      tags.append(el("span", { class: "tag" }, ch.summary));
+    }
+    tags.append(el("span", { class: "tag" }, `${rowsWord(v.row_count)} total`));
+    card.append(title, tags);
+    box.append(card);
+  }
+}
+
+function renderColumns(meta) {
+  const original = Object.fromEntries(Object.entries(meta.cleaning.renamed || {}).map(([o, n]) => [n, o]));
+  for (const c of meta.columns) {
+    const r = el("tr");
+    r.append(el("td", { style: "font-family:var(--mono)" }, c.name), el("td", {}, c.kind),
+             el("td", {}, original[c.name] || "—"), el("td", {}, c.description || "—"));
+    $("cols").append(r);
+  }
+}
+
+loadList().catch((e) => {
+  $("main").replaceChildren(el("div", { class: "empty" }, `Could not reach the API: ${e.message}`));
+});
+</script>
+</body>
+</html>
