@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 
 from . import __version__, store
 from .cleaners import clean_dataframe
@@ -32,11 +33,41 @@ def cmd_add(args) -> None:
             print(f"  ai docs:   described {len(docs)} columns with a local open model")
         except AIUnavailable as exc:
             print(f"  ai docs:   skipped ({exc})")
-    print(f"  try:       rinse serve   then open http://127.0.0.1:8000/datasets/{res['name']}/rows")
+    print(f"  try:       rinse serve   then open http://127.0.0.1:8000/ui?dataset={res['name']}")
+
+
+def update_all() -> int:
+    """Re-fetch every dataset. Returns how many got a new version."""
+    changed = 0
+    for d in store.list_datasets(store.connect()):
+        try:
+            res = update_dataset(d["name"])
+            _print_result(res)
+            changed += int(res["changed"])
+        except Exception as exc:
+            print(f"! {d['name']}: could not update ({exc})", file=sys.stderr)
+    return changed
 
 
 def cmd_update(args) -> None:
-    _print_result(update_dataset(args.name))
+    if args.all:
+        update_all()
+    elif args.name:
+        _print_result(update_dataset(args.name))
+    else:
+        raise ValueError("give a dataset name, or use --all")
+
+
+def cmd_watch(args) -> None:
+    print(f"re-checking all sources every {args.interval} seconds (Ctrl+C to stop)")
+    try:
+        while True:
+            print(time.strftime("[%Y-%m-%d %H:%M:%S]"), "checking sources")
+            changed = update_all()
+            print(f"  {changed} dataset(s) changed")
+            time.sleep(args.interval)
+    except KeyboardInterrupt:
+        print("stopped")
 
 
 def cmd_list(args) -> None:
@@ -83,8 +114,13 @@ def main(argv=None) -> None:
     a.set_defaults(func=cmd_add)
 
     u = sub.add_parser("update", help="re-fetch a dataset; creates a new version only if data changed")
-    u.add_argument("name")
+    u.add_argument("name", nargs="?")
+    u.add_argument("--all", action="store_true", help="update every dataset")
     u.set_defaults(func=cmd_update)
+
+    w = sub.add_parser("watch", help="re-check every source on a schedule and version any changes")
+    w.add_argument("--interval", type=int, default=3600, help="seconds between checks (default 3600)")
+    w.set_defaults(func=cmd_watch)
 
     sub.add_parser("list", help="list datasets").set_defaults(func=cmd_list)
 

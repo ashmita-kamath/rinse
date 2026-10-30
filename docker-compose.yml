@@ -1,0 +1,16 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - rinse-data:/data
+
+  watcher:
+    build: .
+    command: ["rinse", "watch", "--interval", "3600"]
+    volumes:
+      - rinse-data:/data
+
+volumes:
+  rinse-data:

@@ -57,6 +57,10 @@ def now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def plural(n: int, word: str) -> str:
+    return f"{n} {word}" if n == 1 else f"{n} {word}s"
+
+
 def quote(ident: str) -> str:
     return '"' + ident.replace('"', '""') + '"'
 
@@ -130,14 +134,14 @@ def save_version(
             "columns_removed": [c for c in old_cols if c not in cols],
             "row_count": len(new),
         }
-        parts = [f"{changes['rows_added']} rows added", f"{changes['rows_removed']} rows removed"]
+        parts = [plural(changes["rows_added"], "row") + " added", plural(changes["rows_removed"], "row") + " removed"]
         if changes["columns_added"]:
             parts.append("new columns: " + ", ".join(changes["columns_added"]))
         if changes["columns_removed"]:
             parts.append("removed columns: " + ", ".join(changes["columns_removed"]))
         changes["summary"] = "; ".join(parts)
     else:
-        changes = {"summary": f"initial import ({len(new)} rows)", "rows_added": len(new),
+        changes = {"summary": f"initial import ({plural(len(new), 'row')})", "rows_added": len(new),
                    "rows_removed": 0, "row_count": len(new)}
 
     ts = now()
