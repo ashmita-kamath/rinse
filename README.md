@@ -27,7 +27,7 @@ rinse add <url-or-file>
 ## Setup (3 steps)
 
 ```bash
-git clone https://github.com/team-akira/rinse.git && cd rinse
+git clone https://github.com/ashmita-kamath/rinse.git && cd rinse
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 ```

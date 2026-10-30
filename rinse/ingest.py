@@ -16,7 +16,7 @@ from typing import List, Tuple
 
 import pandas as pd
 
-USER_AGENT = "Rinse/0.1 (+https://github.com/team-akira/rinse)"
+USER_AGENT = "Rinse/0.1 (+https://github.com/ashmita-kamath/rinse)"
 
 
 def fetch_bytes(source: str) -> bytes:
