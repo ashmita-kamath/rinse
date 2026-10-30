@@ -21,8 +21,9 @@ rinse add <url-or-file>
    - dates (day-first, Indian style) → `YYYY-MM-DD`
    - numbers: `1,23,456`, `₹`, `Rs. 500/-`, `lakh`, `crore`, `%` → real numbers
    - `NA`, `N.A.`, `-`, `nil` → null; headers → `snake_case`
-3. **Serves a REST API** with OpenAPI docs at `/docs`, filtering and CSV export.
-4. **Versions every change.** `rinse update` re-fetches the source; if the data changed you get a new version and a changelog entry. Old versions stay queryable.
+3. **Serves a REST API** with OpenAPI docs at `/docs`, filtering and CSV export, plus a **web explorer** at `/ui`.
+4. **Versions every change.** `rinse update` (or `rinse watch` on a schedule) re-fetches the source; if the data changed you get a new version and a changelog entry. Old versions stay queryable.
+5. **Clients** for Python and JavaScript.
 
 ## Setup (3 steps)
 
@@ -41,7 +42,9 @@ rinse add examples/karnataka_schools_v1.csv --name schools
 rinse serve
 ```
 
-Open http://127.0.0.1:8000/docs, or:
+Open **http://127.0.0.1:8000/ui** to browse, filter, compare versions and download clean CSV. API docs are at http://127.0.0.1:8000/docs.
+
+API endpoints:
 
 ```
 GET /datasets                                   list datasets
@@ -74,17 +77,51 @@ api.versions("schools")
 df = api.to_dataframe("schools")
 ```
 
+### JavaScript client
+
+No dependencies; works in the browser and Node 18+. The server hosts it at `/static/rinse.js` (source: `rinse/static/rinse.js`).
+
+```js
+import { Rinse } from "http://127.0.0.1:8000/static/rinse.js";
+
+const api = new Rinse("http://127.0.0.1:8000");
+const { rows, total } = await api.rows("schools", { district_name: "Mysuru" });
+const log = await api.versions("schools");
+```
+
+### Scheduled re-checks
+
+```bash
+rinse update --all
+rinse watch --interval 3600
+```
+
+`watch` re-checks every source each hour and creates a new version only when the data actually changed.
+
+### Docker
+
+```bash
+docker compose up --build
+```
+
+Starts the API on port 8000 and a watcher that re-checks sources hourly, sharing one database volume. Add data with:
+
+```bash
+docker compose exec api rinse add examples/karnataka_schools_v1.csv --name schools
+```
+
 ### All commands
 
 | Command | What it does |
 |---|---|
 | `rinse add <src> [--name N] [--describe]` | fetch, clean, store as a new version |
-| `rinse update <name>` | re-fetch from the saved source; new version only if data changed |
+| `rinse update <name>` / `--all` | re-fetch from the saved source; new version only if data changed |
+| `rinse watch [--interval 3600]` | re-check all sources on a schedule |
 | `rinse list` | all datasets |
 | `rinse log <name>` | changelog |
 | `rinse show <name>` | first rows |
 | `rinse clean <src> -o out.csv` | clean a file only, no API |
-| `rinse serve [--port 8000]` | start the API |
+| `rinse serve [--port 8000]` | start the API and web explorer (`/ui`) |
 
 ### Official district list (LGD)
 
@@ -110,7 +147,7 @@ Settings: `RINSE_DB` (database file, default `rinse.db`), `OLLAMA_URL`, `RINSE_M
 ## How it works
 
 ```
-source (URL / file) → ingest.py → cleaners/ → store.py (SQLite, one table per version) → api.py (FastAPI)
+source (URL / file) → ingest.py → cleaners/ → store.py (SQLite, one table per version) → api.py (FastAPI) → /ui, Python + JS clients
 ```
 
 Cleaning rules live in `rinse/cleaners/` and the spelling lists in `rinse/rules/*.csv`, so adding a rule is a small, self-contained PR.

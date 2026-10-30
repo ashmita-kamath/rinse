@@ -12,11 +12,11 @@ rinse add examples/karnataka_schools_v1.csv --name schools
 ```
 Read out the cleaning report: 2 title rows skipped, Total row dropped, 8 spellings → 5 districts, dates to ISO, lakh/crore/₹ to numbers.
 
-**1:00 – Live API (50s)**
+**1:00 – Live API + explorer (50s)**
 ```
 rinse serve
 ```
-Browser: `http://127.0.0.1:8000/docs` → try `/datasets/schools/rows` with `district_name=mysuru`, then `grant_amount_rs__gte=1000000` (only the 1.2 crore row).
+Browser: `http://127.0.0.1:8000/ui` → show "What Rinse cleaned", filter district contains `bengaluru`, point at the API URL box ("every view is an API call you can copy"). Flash `/docs` for 5 seconds.
 
 **1:50 – Versioning (40s)**
 New terminal:
@@ -24,13 +24,13 @@ New terminal:
 rinse add examples/karnataka_schools_v2.csv --name schools
 rinse log schools
 ```
-"The source changed: one amount was corrected and Tumkur was added. Rinse made v2, and v1 is still at `?version=1`."
+"The source changed: one amount was corrected and Tumkur was added. Rinse made v2." Refresh `/ui` → Changelog tab, then switch the version dropdown to v1. "`rinse watch` does this automatically every hour."
 
-**2:30 – Python client + open source (30s)**
+**2:30 – Clients + open source (30s)**
 ```
 python3 -c "from rinse.client import Rinse; print(Rinse().rows('schools', district_name='Mysuru'))"
 ```
-"MIT licence. Adding a district spelling is one line in a CSV plus a test. Local Qwen model for column docs, no closed AI APIs."
+"Python and JavaScript clients, Docker in one command, MIT licence. Adding a district spelling is one line in a CSV plus a test. Local Qwen model for column docs, no closed AI APIs."
 
 ## Likely Q&A
 

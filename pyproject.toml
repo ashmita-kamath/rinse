@@ -27,4 +27,4 @@ rinse = "rinse.cli:main"
 packages = ["rinse", "rinse.cleaners"]
 
 [tool.setuptools.package-data]
-rinse = ["rules/*.csv"]
+rinse = ["rules/*.csv", "static/*"]
