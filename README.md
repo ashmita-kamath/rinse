@@ -14,7 +14,7 @@ Files from data.gov.in and state portals are messy. One district appears as `Mys
 rinse add <url-or-file>
 ```
 
-1. **Fetches** a CSV, Excel or JSON file from a URL or your disk (including the data.gov.in JSON format).
+1. **Fetches** a CSV, Excel or JSON file from a URL or your disk (including the data.gov.in JSON format). Excel uses the first sheet with data rows after header detection, skipping empty or title/header-only cover sheets.
 2. **Cleans Indian formats**
    - finds the real header row and skips title rows; drops `Total` rows
    - district and state names → one standard spelling (`Mysore` → `Mysuru`, `Orissa` → `Odisha`)
@@ -151,6 +151,11 @@ source (URL / file) → ingest.py → cleaners/ → store.py (SQLite, one table 
 ```
 
 Cleaning rules live in `rinse/cleaners/` and the spelling lists in `rinse/rules/*.csv`, so adding a rule is a small, self-contained PR.
+
+`examples/schools_with_cover.xlsx` is a synthetic workbook with a title-only cover,
+an empty sheet, and a two-column school table. Its counts are illustrative, not
+official data. Sheets with only headers return no data; multi-row prose is still
+subject to the existing header-detection heuristic.
 
 ## Tests
 
