@@ -89,8 +89,15 @@ def read_source(source: str) -> Tuple[pd.DataFrame, dict]:
         return df, info
 
     if kind in ("xlsx", "xls"):
-        raw = pd.read_excel(io.BytesIO(data), header=None, dtype=object, sheet_name=0)
-        grid = raw.where(pd.notna(raw), None).values.tolist()
+        with pd.ExcelFile(io.BytesIO(data)) as workbook:
+            for sheet in workbook.sheet_names:
+                raw = pd.read_excel(workbook, sheet_name=sheet, header=None, dtype=object)
+                grid = raw.where(pd.notna(raw), None).values.tolist()
+                df, skipped = promote_header(grid)
+                if not df.empty:
+                    info["title_rows_skipped"] = skipped
+                    return df, info
+        return pd.DataFrame(), info
     else:
         text = decode(data)
         try:
